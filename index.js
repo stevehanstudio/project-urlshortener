@@ -7,7 +7,6 @@ const bodyParser = require('body-parser')
 const dns = require('dns')
 const { parse: urlParser } = require('url')
 const mongoose = require('mongoose')
-const { count } = require('node:console')
 
 mongoose
 	.connect(process.env.MONGO_URI, { useNewUrlParser: true })
@@ -106,7 +105,7 @@ app.post('/api/shorturl/', (req, res) => {
         })
         .catch(err => {
           res.json({
-            error: 'Invalid URL',
+            error: 'invalid url',
           })
         })
     }})
@@ -117,7 +116,7 @@ app.get('/api/shorturl/:id', (req, res) => {
   const { id } = req.params
   if (isNaN(id)) {
     res.json({
-      error: 'Invalid Url'
+      error: 'invalid url'
     })
   }
   getUrlById(+id)
@@ -126,7 +125,7 @@ app.get('/api/shorturl/:id', (req, res) => {
       res.redirect(`https://${shortUrl[0].url}`)
     })
     .catch(err => {
-      console.log("URL not found in database", err)
+      console.log("invalid url")
     })
 })
 
