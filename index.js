@@ -14,7 +14,7 @@ mongoose
 		console.log('Database connection successful')
 	})
 	.catch(err => {
-		console.error('Database connection error')
+		console.error('Database connection error', err)
 	})
 
 const shortUrlSchema = new mongoose.Schema({
@@ -84,7 +84,12 @@ app.post('/api/shorturl/', (req, res) => {
   const { url: rawUrl } = req.body
   const parsedUrl = urlParser(rawUrl)
   const url = parsedUrl.protocol ? parsedUrl.host : parsedUrl.path
-  // console.log("About to DNS lookup url:", url);
+  // console.log(
+	// 	'About to DNS lookup url:',
+	// 	url, rawUrl,
+	// 	parsedUrl.protocol, parsedUrl.host,
+	// 	parsedUrl.path
+  // )
   dns.lookup(url,
     (err, address, family) => {
     if (err) {
@@ -95,38 +100,50 @@ app.post('/api/shorturl/', (req, res) => {
         "error": "invalid url"
       })
     } else {
-      createAndSaveUrl(url)
-        .then(shortUrl => {
-          // console.log("Returning from createAndSave with", shortUrl)
-          res.json({
-            "original_url": shortUrl.url,
-            "short_url": shortUrl.id
-          })
-        })
-        .catch(err => {
-          res.json({
-            error: 'invalid url',
-          })
-        })
-    }})
+			createAndSaveUrl(rawUrl)
+				.then(shortUrl => {
+					console.log('Returning from createAndSave with', shortUrl)
+					res.json({
+						original_url: shortUrl.url,
+						short_url: shortUrl.id,
+					})
+				})
+				.catch(err => {
+					res.json({
+						error: 'invalid url',
+					})
+				})
+		}})
 })
 
 
-app.get('/api/shorturl/:id', (req, res) => {
+app.get('/api/shorturl/:id', (req, res, next) => {
   const { id } = req.params
-  if (isNaN(id)) {
+  if (Number.isNaN(id)) {
     res.json({
       error: 'invalid url'
     })
+  } else {
+    console.log("About to cast: ", id);
+    getUrlById(+id)
+      .then(shortUrl => {
+        let url
+        if (shortUrl[0] && shortUrl[0].url) {
+          console.log('shortUrl', shortUrl)
+          url = shortUrl[0].url
+          // if (!(url).include("http"))
+          //   url = "https://" + url
+        } else {
+          console.log("Why is shortUrl undefined:", shortUrl[0]);
+        }
+        console.log("URL to redirect", url)
+        res.status(301).redirect(url)
+        next
+      })
+      .catch(err => {
+        console.log("error in getUrlById: invalid url")
+      })
   }
-  getUrlById(+id)
-    .then(shortUrl => {
-      console.log('shortUrl', shortUrl)
-      res.redirect(`https://${shortUrl[0].url}`)
-    })
-    .catch(err => {
-      console.log("invalid url")
-    })
 })
 
 
